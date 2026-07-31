@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>Starcima</string>
+    <string>TVazawy</string>
     <key>CFBundleIdentifier</key>
-    <string>com.starcima.app</string>
+    <string>com.tvazawy.app</string>
     
     <!-- 1. تغيير اسم التطبيق الذي يظهر تحت الأيقونة في الشاشة الرئيسية -->
     <key>CFBundleName</key>
