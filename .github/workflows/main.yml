@@ -22,7 +22,7 @@ jobs:
       run: |
         mkdir -p build/Payload/Starcima.app
         
-        # تجميع كل الملفات البرمجية لتوليد ملف تنفيذي صحيح للآيفون
+        # تجميع ملفات السويفت
         swiftc -sdk $(xcrun --sdk iphoneos --show-sdk-path) \
                -target arm64-apple-ios14.0 \
                -emit-executable \
@@ -30,6 +30,9 @@ jobs:
                -framework WebKit \
                -o build/Payload/Starcima.app/Starcima \
                main.swift AppDelegate.swift ViewController.swift
+        
+        # تجميع ملف Storyboard لشاشة البداية لتفعيل أبعاد الشاشة الحقيقية
+        ibtool --compile build/Payload/Starcima.app/LaunchScreen.storyboardc LaunchScreen.storyboard
         
         cp Info.plist build/Payload/Starcima.app/Info.plist
 
