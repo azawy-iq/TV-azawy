@@ -20,32 +20,33 @@ jobs:
 
     - name: Compile and Create App Bundle
       run: |
-        mkdir -p build/Payload/Starcima.app
+        # 1. إنشاء مجلد التطبيق باسم TVazawy.app
+        mkdir -p build/Payload/TVazawy.app
         
-        # 1. تجميع الأكواد
+        # 2. تجميع الأكواد وإنشاء الملف التنفيذي باسم TVazawy
         swiftc -sdk $(xcrun --sdk iphoneos --show-sdk-path) \
                -target arm64-apple-ios14.0 \
                -emit-executable \
                -framework UIKit \
                -framework WebKit \
                -framework AVFoundation \
-               -o build/Payload/Starcima.app/Starcima \
+               -o build/Payload/TVazawy.app/TVazawy \
                main.swift AppDelegate.swift ViewController.swift
         
-        # 2. نسخ ملف Info.plist والأيقونة
-        cp Info.plist build/Payload/Starcima.app/Info.plist
+        # 3. نسخ ملف Info.plist والأيقونة داخل المجلد الجديد
+        cp Info.plist build/Payload/TVazawy.app/Info.plist
         if [ -f "AppIcon.png" ]; then
-          cp AppIcon.png build/Payload/Starcima.app/AppIcon.png
+          cp AppIcon.png build/Payload/TVazawy.app/AppIcon.png
         fi
 
     - name: Create IPA File
       run: |
         cd build
-        # ضغط مجلد Payload مباشرة بصيغة ZIP مع حماية الأذونات
-        zip -q -r Starcima.ipa Payload
+        # ضغط مجلد Payload لإنتاج TVazawy.ipa
+        zip -q -r TVazawy.ipa Payload
 
     - name: Upload IPA Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Starcima-Ready-IPA
-        path: build/Starcima.ipa
+        name: TVazawy-Ready-IPA
+        path: build/TVazawy.ipa
