@@ -22,7 +22,7 @@ jobs:
       run: |
         mkdir -p build/Payload/Starcima.app
         
-        # تجميع أكواد السويفت
+        # 1. تجميع الأكواد
         swiftc -sdk $(xcrun --sdk iphoneos --show-sdk-path) \
                -target arm64-apple-ios14.0 \
                -emit-executable \
@@ -32,19 +32,20 @@ jobs:
                -o build/Payload/Starcima.app/Starcima \
                main.swift AppDelegate.swift ViewController.swift
         
-        # نسخ ملف Info.plist وملف الصورة AppIcon.png
+        # 2. نسخ ملف Info.plist والأيقونة
         cp Info.plist build/Payload/Starcima.app/Info.plist
         if [ -f "AppIcon.png" ]; then
           cp AppIcon.png build/Payload/Starcima.app/AppIcon.png
         fi
 
-    - name: Create IPA
+    - name: Create IPA File
       run: |
         cd build
-        zip -r Starcima.ipa Payload
+        # ضغط مجلد Payload مباشرة بصيغة ZIP مع حماية الأذونات
+        zip -q -r Starcima.ipa Payload
 
     - name: Upload IPA Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Starcima-IPA
+        name: Starcima-Ready-IPA
         path: build/Starcima.ipa
