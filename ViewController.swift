@@ -5,14 +5,6 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
     
     var webView: WKWebView!
 
-    // -------------------------------------------------------------
-    // 💡 عدّل هذه النسبة يدوياً لتكبير أو تصغير قياسات محتوى الموقع:
-    // 1.0 = القياس الطبيعي
-    // 1.15 = تكبير بنسبة 115%
-    // 1.25 = تكبير بنسبة 125% (ممتاز لملء شاشة 12 Pro Max)
-    let zoomLevel: Double = 1.20
-    // -------------------------------------------------------------
-
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -24,34 +16,16 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         let userScript = WKUserScript(source: blockScript, injectionTime: .atDocumentStart, forMainFrameOnly: false)
         config.userContentController.addUserScript(userScript)
 
-        // 2. كود تعديل القياسات وإجبار الموقع على التمدد والزوم
-        let customScaleScript = """
-            var meta = document.createElement('meta');
-            meta.name = 'viewport';
-            meta.content = 'width=device-width, initial-scale=1.0, viewport-fit=cover';
-            document.getElementsByTagName('head')[0].appendChild(meta);
-            
+        // 2. كود CSS لإلغاء أي حواف خفية داخل الموقع نفسه (Margin/Padding)
+        let removeMarginsScript = """
             var style = document.createElement('style');
-            style.innerHTML = `
-                body, html {
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    width: 100% !important;
-                    zoom: \(zoomLevel) !important;
-                    -webkit-transform-origin: 0 0;
-                }
-                .container, .wrapper, main {
-                    max-width: 100% !important;
-                    width: 100% !important;
-                }
-            `;
+            style.innerHTML = 'html, body { margin: 0 !important; padding: 0 !important; width: 100vw !important; height: 100vh !important; max-width: 100% !important; }';
             document.head.appendChild(style);
         """
-        
-        let scaleUserScript = WKUserScript(source: customScaleScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
-        config.userContentController.addUserScript(scaleUserScript)
+        let marginUserScript = WKUserScript(source: removeMarginsScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+        config.userContentController.addUserScript(marginUserScript)
 
-        // 3. إعداد الـ WebView لملء إطار الهاتف كلياً
+        // 3. إنشاء الـ WebView
         webView = WKWebView(frame: .zero, configuration: config)
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.navigationDelegate = self
@@ -59,11 +33,13 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         
         webView.backgroundColor = .black
         webView.scrollView.backgroundColor = .black
+        
+        // 🚨 نقطة السر: إيقاف تعديل Safe Area تلقائياً ليمتد المحتوى لأطراف الهاتف
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         
         self.view.addSubview(webView)
         
-        // ربط أطراف الـ WebView بالحواف الحقيقية للجهاز
+        // 4. ربط حواف الـ WebView بالحواف الحقيقية للشاشة (view.topAnchor وليس safeAreaLayoutGuide)
         NSLayoutConstraint.activate([
             webView.topAnchor.constraint(equalTo: self.view.topAnchor),
             webView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
@@ -77,6 +53,7 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         }
     }
 
+    // إخفاء شريط الساعة والبطارية (Status Bar) للحصول على شاشة كاملة حقيقية
     override var prefersStatusBarHidden: Bool {
         return true
     }
@@ -89,6 +66,7 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         return true
     }
 
+    // حظر التوجيه الإعلاني
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         if let url = navigationAction.request.url {
             let host = url.host?.lowercased() ?? ""
