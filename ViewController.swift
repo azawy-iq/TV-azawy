@@ -11,7 +11,7 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         let config = WKWebViewConfiguration()
         config.preferences.javaScriptCanOpenWindowsAutomatically = false
         
-        // منع الإعلانات والنوافذ المنبثقة
+        // منع فتح النوافذ المنبثقة الإعلانية
         let blockScript = "window.open = function() { return null; };"
         let userScript = WKUserScript(source: blockScript, injectionTime: .atDocumentStart, forMainFrameOnly: false)
         config.userContentController.addUserScript(userScript)
