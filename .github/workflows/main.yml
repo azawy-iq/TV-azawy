@@ -7,31 +7,58 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-13
 
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Set up Xcode
-      uses: maxim-lobanov/setup-xcode@v1
-      with:
-        xcode-version: latest-stable
+    - name: Setup App Structure
+      run: |
+        mkdir -p StarcimaApp/StarcimaApp
+        mv ViewController.swift StarcimaApp/StarcimaApp/
+        mv AppDelegate.swift StarcimaApp/StarcimaApp/
+        mv Info.plist StarcimaApp/StarcimaApp/
 
-    - name: Compile and Create App Bundle
+    - name: Create Minimal Xcode Project
+      run: |
+        cat << 'EOF' > generate_proj.swift
+        import Foundation
+
+        let projectContent = """
+        // !$*UTF8*$!
+        {
+            archiveVersion = 1;
+            classes = {
+            };
+            objectVersion = 54;
+            objects = {
+                13B07F861A680F5B00A75B9A /* StarcimaApp */ = {isa = PBXAggregateTarget; buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXAggregateTarget "StarcimaApp" */; buildPhases = ( ); name = StarcimaApp; productName = StarcimaApp; };
+                13B07F931A680F5B00A75B9A /* Build configuration list for PBXAggregateTarget "StarcimaApp" */ = {isa = XCConfigurationList; buildConfigurations = ( 13B07F941A680F5B00A75B9A /* Debug */, 13B07F951A680F5B00A75B9A /* Release */ ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+                13B07F941A680F5B00A75B9A /* Debug */ = {isa = XCBuildConfiguration; buildSettings = { PRODUCT_NAME = "$(TARGET_NAME)"; }; name = Debug; };
+                13B07F951A680F5B00A75B9A /* Release */ = {isa = XCBuildConfiguration; buildSettings = { PRODUCT_NAME = "$(TARGET_NAME)"; }; name = Release; };
+            };
+            rootObject = 13B07F861A680F5B00A75B9A /* StarcimaApp */;
+        }
+        """
+        EOF
+
+    - name: Compile with SDK
       run: |
         mkdir -p build/Payload/Starcima.app
         
-        # تجميع ملفات السويفت معاً لتشغيل واجهة التطبيق
-        swiftc -sdk $(xcrun --sdk iphoneos --show-sdk-path) \
-               -target arm64-apple-ios14.0 \
-               -emit-executable \
-               -o build/Payload/Starcima.app/Starcima \
-               AppDelegate.swift ViewController.swift
+        xcrun --sdk iphoneos swiftc \
+          -target arm64-apple-ios14.0 \
+          -emit-executable \
+          -o build/Payload/Starcima.app/Starcima \
+          StarcimaApp/StarcimaApp/AppDelegate.swift \
+          StarcimaApp/StarcimaApp/ViewController.swift \
+          -Xlinker -rpath -Xlinker /System/Library/Frameworks \
+          -Xlinker -rpath -Xlinker /usr/lib/swift
         
-        cp Info.plist build/Payload/Starcima.app/Info.plist
+        cp StarcimaApp/StarcimaApp/Info.plist build/Payload/Starcima.app/Info.plist
 
-    - name: Create IPA
+    - name: Create IPA Package
       run: |
         cd build
         zip -r Starcima.ipa Payload
