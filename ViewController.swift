@@ -16,28 +16,25 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         let userScript = WKUserScript(source: blockScript, injectionTime: .atDocumentStart, forMainFrameOnly: false)
         config.userContentController.addUserScript(userScript)
 
-        // إعداد الـ WebView لملء الشاشة بالكامل
-        webView = WKWebView(frame: .zero, configuration: config)
-        webView.translatesAutoresizingMaskIntoConstraints = false
-        webView.navigationDelegate = self
-        webView.uiDelegate = self
+        // 1. تحديد أبعاد الشاشة يدوياً على كامل الحجم الفيزيائي للجهاز
+        let screenSize = UIScreen.main.bounds
+        webView = WKWebView(frame: CGRect(x: 0, y: 0, width: screenSize.width, height: screenSize.height), configuration: config)
         
-        // جعل خلفية الـ WebView داكنة لتناسب تصميم الموقع
+        // 2. تمديد الـ WebView تلقائياً مع دوران الشاشة
+        webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        
+        // 3. إلغاء الهوامش الآمنة (Safe Area) يدوياً لتغطي الشاشة بالكامل
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
+        
+        // خلفية سوداء لتجنب ظهور أي حواف بيضاء
+        self.view.backgroundColor = .black
         webView.backgroundColor = .black
         webView.scrollView.backgroundColor = .black
         
-        // السماح بالتمرير حتى حدود الشاشة
-        webView.scrollView.contentInsetAdjustmentBehavior = .never
+        webView.navigationDelegate = self
+        webView.uiDelegate = self
         
         self.view.addSubview(webView)
-        
-        // ربط الـ WebView بأطراف الشاشة الكاملة (Edge-to-Edge)
-        NSLayoutConstraint.activate([
-            webView.topAnchor.constraint(equalTo: self.view.topAnchor),
-            webView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
-            webView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
-            webView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor)
-        ])
         
         if let url = URL(string: "https://starcima.com") {
             let request = URLRequest(url: url)
@@ -45,16 +42,24 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         }
     }
 
-    // السماح بالدوران بالطول والعرض
+    // إعادة ضبط الأبعاد يدوياً عند تدوير الشاشة (طول / عرض)
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        coordinator.animate(alongsideTransition: { _ in
+            self.webView.frame = CGRect(x: 0, y: 0, width: size.width, height: size.height)
+        }, completion: nil)
+    }
+
+    // تفعيل الدوران لجميع الاتجاهات
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
         return .all
     }
-    
+
     override var shouldAutorotate: Bool {
         return true
     }
 
-    // حظر التوجيه الخارجي غير المرغوب به
+    // حظر التوجيه الإعلاني الخارجي
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         if let url = navigationAction.request.url {
             let host = url.host?.lowercased() ?? ""
