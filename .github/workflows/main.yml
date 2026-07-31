@@ -20,14 +20,18 @@ jobs:
 
     - name: Compile and Create App Bundle
       run: |
-        mkdir -p build/Payload
+        # إنشاء هيكلية التطبيق الصحيحة (Payload/Starcima.app)
+        mkdir -p build/Payload/Starcima.app
+        
+        # تجميع كود Swift
         swiftc -sdk $(xcrun --sdk iphoneos --show-sdk-path) \
                -target arm64-apple-ios14.0 \
                -emit-executable \
-               -o build/Payload/Starcima \
+               -o build/Payload/Starcima.app/Starcima \
                ViewController.swift
         
-        cp Info.plist build/Payload/Info.plist
+        # نسخ ملف الإعدادات داخل مجلد التطبيق
+        cp Info.plist build/Payload/Starcima.app/Info.plist
 
     - name: Create IPA
       run: |
