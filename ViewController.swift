@@ -29,7 +29,6 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         }
     }
 
-    // حظر التوجيه الخارجي غير المرغوب به
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         if let url = navigationAction.request.url {
             let host = url.host?.lowercased() ?? ""
