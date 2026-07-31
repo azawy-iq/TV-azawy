@@ -16,30 +16,46 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         let userScript = WKUserScript(source: blockScript, injectionTime: .atDocumentStart, forMainFrameOnly: false)
         config.userContentController.addUserScript(userScript)
 
-        // 2. كود CSS لإلغاء أي حواف خفية داخل الموقع نفسه (Margin/Padding)
-        let removeMarginsScript = """
+        // 2. إلغاء أبعاد العرض المحدودة داخل كود الموقع (CSS Override)
+        let overrideCSS = """
+            var meta = document.createElement('meta');
+            meta.name = 'viewport';
+            meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+            document.getElementsByTagName('head')[0].appendChild(meta);
+            
             var style = document.createElement('style');
-            style.innerHTML = 'html, body { margin: 0 !important; padding: 0 !important; width: 100vw !important; height: 100vh !important; max-width: 100% !important; }';
+            style.innerHTML = `
+                html, body {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    width: 100% !important;
+                    min-width: 100% !important;
+                    max-width: 100% !important;
+                    background-color: #000 !important;
+                }
+                .container, .main-content, .wrapper, header, footer {
+                    max-width: 100% !important;
+                    width: 100% !important;
+                    padding-left: 0 !important;
+                    padding-right: 0 !important;
+                }
+            `;
             document.head.appendChild(style);
         """
-        let marginUserScript = WKUserScript(source: removeMarginsScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
-        config.userContentController.addUserScript(marginUserScript)
+        let cssScript = WKUserScript(source: overrideCSS, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+        config.userContentController.addUserScript(cssScript)
 
-        // 3. إنشاء الـ WebView
+        // 3. ضبط الـ WebView ليتجاوز Safe Area بالكامل
         webView = WKWebView(frame: .zero, configuration: config)
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.navigationDelegate = self
         webView.uiDelegate = self
-        
         webView.backgroundColor = .black
         webView.scrollView.backgroundColor = .black
-        
-        // 🚨 نقطة السر: إيقاف تعديل Safe Area تلقائياً ليمتد المحتوى لأطراف الهاتف
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         
         self.view.addSubview(webView)
         
-        // 4. ربط حواف الـ WebView بالحواف الحقيقية للشاشة (view.topAnchor وليس safeAreaLayoutGuide)
         NSLayoutConstraint.activate([
             webView.topAnchor.constraint(equalTo: self.view.topAnchor),
             webView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
@@ -53,7 +69,6 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         }
     }
 
-    // إخفاء شريط الساعة والبطارية (Status Bar) للحصول على شاشة كاملة حقيقية
     override var prefersStatusBarHidden: Bool {
         return true
     }
@@ -66,7 +81,6 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         return true
     }
 
-    // حظر التوجيه الإعلاني
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         if let url = navigationAction.request.url {
             let host = url.host?.lowercased() ?? ""
