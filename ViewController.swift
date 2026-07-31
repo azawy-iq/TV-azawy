@@ -1,5 +1,6 @@
 import UIKit
 import WebKit
+import AVFoundation
 
 class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
     
@@ -8,14 +9,28 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        // 1. تهيئة جلسة الصوت لتسمح بالتشغيل في الخلفية وبث الفيديو
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [])
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("خطأ في ضبط جلسة الصوت: \(error)")
+        }
+
+        // 2. إعدادات WKWebView لتفعيل Picture-in-Picture
         let config = WKWebViewConfiguration()
+        config.allowsInlineMediaPlayback = true
+        config.allowsPictureInPictureMediaPlayback = true
+        config.mediaTypesRequiringUserActionForPlayback = []
+        
         config.preferences.javaScriptCanOpenWindowsAutomatically = false
         
-        // منع فتح النوافذ المنبثقة الإعلانية
+        // حظر الإعلانات بالنوافذ المنبثقة
         let blockScript = "window.open = function() { return null; };"
         let userScript = WKUserScript(source: blockScript, injectionTime: .atDocumentStart, forMainFrameOnly: false)
         config.userContentController.addUserScript(userScript)
 
+        // 3. إنشاء الـ WebView
         webView = WKWebView(frame: self.view.bounds, configuration: config)
         webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         webView.navigationDelegate = self
