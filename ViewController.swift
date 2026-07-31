@@ -5,46 +5,65 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
     
     var webView: WKWebView!
 
+    // -------------------------------------------------------------
+    // 💡 عدّل هذه النسبة يدوياً لتكبير أو تصغير قياسات محتوى الموقع:
+    // 1.0 = القياس الطبيعي
+    // 1.15 = تكبير بنسبة 115%
+    // 1.25 = تكبير بنسبة 125% (ممتاز لملء شاشة 12 Pro Max)
+    let zoomLevel: Double = 1.20
+    // -------------------------------------------------------------
+
     override func viewDidLoad() {
         super.viewDidLoad()
         
         let config = WKWebViewConfiguration()
         config.preferences.javaScriptCanOpenWindowsAutomatically = false
         
-        // 1. منع الإعلانات والنوافذ المنبثقة
+        // 1. حظر الإعلانات والنوافذ المنبثقة
         let blockScript = "window.open = function() { return null; };"
         let userScript = WKUserScript(source: blockScript, injectionTime: .atDocumentStart, forMainFrameOnly: false)
         config.userContentController.addUserScript(userScript)
 
-        // 2. كود سحري لحقن صفحة الويب وتكبير الـ Viewport لملء الشاشة بالكامل دون هوامش
-        let viewportScript = """
+        // 2. كود تعديل القياسات وإجبار الموقع على التمدد والزوم
+        let customScaleScript = """
             var meta = document.createElement('meta');
             meta.name = 'viewport';
-            meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+            meta.content = 'width=device-width, initial-scale=1.0, viewport-fit=cover';
             document.getElementsByTagName('head')[0].appendChild(meta);
             
             var style = document.createElement('style');
-            style.innerHTML = 'body, html { margin: 0 !important; padding: 0 !important; width: 100% !important; height: 100% !important; overflow-x: hidden !important; }';
+            style.innerHTML = `
+                body, html {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    width: 100% !important;
+                    zoom: \(zoomLevel) !important;
+                    -webkit-transform-origin: 0 0;
+                }
+                .container, .wrapper, main {
+                    max-width: 100% !important;
+                    width: 100% !important;
+                }
+            `;
             document.head.appendChild(style);
         """
-        let viewportUserScript = WKUserScript(source: viewportScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
-        config.userContentController.addUserScript(viewportUserScript)
+        
+        let scaleUserScript = WKUserScript(source: customScaleScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+        config.userContentController.addUserScript(scaleUserScript)
 
-        // 3. إنشاء الـ WebView بدون قيود
+        // 3. إعداد الـ WebView لملء إطار الهاتف كلياً
         webView = WKWebView(frame: .zero, configuration: config)
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.navigationDelegate = self
         webView.uiDelegate = self
         
-        // 4. خلفية سوداء وإلغاء حواف Safe Area من الـ ScrollView
         webView.backgroundColor = .black
         webView.scrollView.backgroundColor = .black
         webView.scrollView.contentInsetAdjustmentBehavior = .never
-        webView.scrollView.bounces = false
         
         self.view.addSubview(webView)
         
-        // 5. ربط حواف الـ WebView بأطراف شاشة الهاتف الحقيقية (Top, Bottom, Leading, Trailing)
+        // ربط أطراف الـ WebView بالحواف الحقيقية للجهاز
         NSLayoutConstraint.activate([
             webView.topAnchor.constraint(equalTo: self.view.topAnchor),
             webView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
@@ -58,12 +77,10 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         }
     }
 
-    // إجبار إخفاء شريط الحالة (Status Bar) بالأعلى للحصول على شاشة كاملة حقيقية
     override var prefersStatusBarHidden: Bool {
         return true
     }
 
-    // تفعيل التدوير لكامل الشاشة بالطول والعرض
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
         return .all
     }
@@ -72,7 +89,6 @@ class ViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         return true
     }
 
-    // حظر التوجيهات الإعلانية الخارجية
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         if let url = navigationAction.request.url {
             let host = url.host?.lowercased() ?? ""
