@@ -1,4 +1,4 @@
-name: Build IPA
+name: Build Strofy IPA
 
 on:
   push:
@@ -13,40 +13,39 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Set up Xcode
-      uses: maxim-lobanov/setup-xcode@v1
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
       with:
-        xcode-version: latest-stable
+        node-version: 20
 
-    - name: Compile and Create App Bundle
-      run: |
-        # 1. إنشاء مجلد التطبيق باسم TVazawy.app
-        mkdir -p build/Payload/TVazawy.app
-        
-        # 2. تجميع الأكواد وإنشاء الملف التنفيذي باسم TVazawy
-        swiftc -sdk $(xcrun --sdk iphoneos --show-sdk-path) \
-               -target arm64-apple-ios14.0 \
-               -emit-executable \
-               -framework UIKit \
-               -framework WebKit \
-               -framework AVFoundation \
-               -o build/Payload/TVazawy.app/TVazawy \
-               main.swift AppDelegate.swift ViewController.swift
-        
-        # 3. نسخ ملف Info.plist والأيقونة داخل المجلد الجديد
-        cp Info.plist build/Payload/TVazawy.app/Info.plist
-        if [ -f "AppIcon.png" ]; then
-          cp AppIcon.png build/Payload/TVazawy.app/AppIcon.png
-        fi
+    - name: Install dependencies
+      run: npm install
 
-    - name: Create IPA File
+    - name: Add iOS platform (Capacitor)
       run: |
-        cd build
-        # ضغط مجلد Payload لإنتاج TVazawy.ipa
-        zip -q -r TVazawy.ipa Payload
+        npx cap add ios || true
+        npx cap sync ios
+
+    - name: Build unsigned .app
+      run: |
+        cd ios/App
+        xcodebuild -workspace App.xcworkspace \
+                   -scheme App \
+                   -sdk iphoneos \
+                   -configuration Release \
+                   CODE_SIGN_IDENTITY="" \
+                   CODE_SIGNING_REQUIRED=NO \
+                   CODE_SIGNING_ALLOWED=NO \
+                   build
+
+    - name: Package as direct clean .ipa
+      run: |
+        mkdir -p Payload
+        cp -r ios/App/build/Release-iphoneos/App.app Payload/Strofy.app
+        zip -r Strofy.ipa Payload
 
     - name: Upload IPA Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: TVazawy-Ready-IPA
-        path: build/TVazawy.ipa
+        name: Strofy-Ready-IPA
+        path: Strofy.ipa
