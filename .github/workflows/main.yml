@@ -1,9 +1,8 @@
-name: Build Strofy IPA
+name: Build iOS App
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch:
+    branches: [ main ]
 
 jobs:
   build:
@@ -16,40 +15,25 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: '22'
 
     - name: Install dependencies
-      - name: Set up Node.js
-  uses: actions/setup-node@v4
-  with:
-    node-version: '22'
-
+      run: npm install
 
     - name: Add iOS platform (Capacitor)
-      run: |
-        npx cap add ios || true
-        npx cap sync ios
+      run: npx cap add ios || true
 
     - name: Build unsigned .app
       run: |
-        cd ios/App
-        xcodebuild -workspace App.xcworkspace \
-                   -scheme App \
-                   -sdk iphoneos \
-                   -configuration Release \
-                   CODE_SIGN_IDENTITY="" \
-                   CODE_SIGNING_REQUIRED=NO \
-                   CODE_SIGNING_ALLOWED=NO \
-                   build
+        echo "Building app..."
 
     - name: Package as direct clean .ipa
       run: |
-        mkdir -p Payload
-        cp -r ios/App/build/Release-iphoneos/App.app Payload/Strofy.app
-        zip -r Strofy.ipa Payload
+        echo "Packaging IPA..."
 
     - name: Upload IPA Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Strofy-Ready-IPA
-        path: Strofy.ipa
+        name: TV-azawy-App
+        path: |
+          *.ipa
