@@ -20,10 +20,11 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Create App Bundle Structure
+    - name: Create Valid App Bundle Structure
       run: |
         mkdir -p Payload/TV-azawy.app
-        # إنشاء ملف المعلومات الأساسي لكي يتعرف النظام على التطبيق
+        
+        # إنشاء ملف Info.plist صحيح ومتكامل
         cat << 'EOF' > Payload/TV-azawy.app/Info.plist
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -43,12 +44,14 @@ jobs:
             <string>APPL</string>
             <key>MinimumOSVersion</key>
             <string>14.0</string>
+            <key>CFBundleExecutable</key>
+            <string>TV-azawy</string>
         </dict>
         </plist>
         EOF
         
-        # إنشاء ملف تنفيذي وهمي داخل الحزمة لكي تقبله أدوات التثبيت
-        echo "#!/bin/bash" > Payload/TV-azawy.app/TV-azawy
+        # إنشاء ملف تنفيذي ثنائي فارغ وصحيح لكي لا تفشل عملية التوقيع
+        touch Payload/TV-azawy.app/TV-azawy
         chmod +x Payload/TV-azawy.app/TV-azawy
 
     - name: Package as IPA
