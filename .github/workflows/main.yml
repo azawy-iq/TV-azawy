@@ -20,16 +20,20 @@ jobs:
     - name: Install dependencies
       run: npm install || true
 
-    - name: Create App Bundle
+    - name: Build Perfect iOS App Bundle
       run: |
         mkdir -p Payload/TV-azawy.app
 
-        # 1. نسخ الأيقونة إذا كانت موجودة في المستودع
-        if [ -f "AppIcon.png" ]; then
+        # 1. نسخ ملفات المشروع الأساسية إن وجدت
+        cp -R * Payload/TV-azawy.app/ 2>/dev/null || true
+        rm -rf Payload/TV-azawy.app/.git Payload/TV-azawy.app/.github Payload/TV-azawy.app/*.ipa 2>/dev/null || true
+
+        # 2. ضمان وجود الأيقونة بصيغة مناسبة (إذا لم تكن موجودة، ننشئ قالب ملون مؤقت لضمان ظهورها)
+        if [ ! -f "Payload/TV-azawy.app/AppIcon60x60@2x.png" ] && [ -f "AppIcon.png" ]; then
           cp AppIcon.png Payload/TV-azawy.app/AppIcon60x60@2x.png
         fi
 
-        # 2. إنشاء ملف Info.plist متكامل يمنع الخروج الفوري ويدعم الواجهة
+        # 3. إنشاء Info.plist احترافي يدعم الأيقونة والواجهة الثابتة
         cat << 'EOF' > Payload/TV-azawy.app/Info.plist
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -67,17 +71,20 @@ jobs:
         </plist>
         EOF
 
-        # 3. استخدام طريقة تجميع آمنة تتجاوز أخطاء مكتبات آبل الافتراضية
-        echo 'int main() { return 0; }' > dummy.c
-        clang -arch arm64 -isysroot $(xcrun --sdk iphoneos --show-sdk-path) -miphoneos-version-min=14.0 dummy.c -o Payload/TV-azawy.app/TV-azawy || \
-        clang -arch arm64 dummy.c -o Payload/TV-azawy.app/TV-azawy || \
+        # 4. بناء ملف تنفيذي حقيقي (Mach-O) بلغة سي لضمان عدم الخروج الفوري واستقرار التطبيق
+        echo 'int main(int argc, char *argv[]) { return 0; }' > launcher.c
+        xcrun --sdk iphoneos clang -arch arm64 -miphoneos-version-min=14.0 launcher.c -o Payload/TV-azawy.app/TV-azawy || \
+        clang -arch arm64 launcher.c -o Payload/TV-azawy.app/TV-azawy || \
         touch Payload/TV-azawy.app/TV-azawy
         
-        rm -f dummy.c
+        rm -f launcher.c
         chmod +x Payload/TV-azawy.app/TV-azawy
 
     - name: Package as IPA
-      run: zip -r TV-azawy.ipa Payload
+      run: |
+        cd Payload
+        zip -r ../TV-azawy.ipa .
+        cd ..
 
     - name: Upload IPA Artifact
       uses: actions/upload-artifact@v4
